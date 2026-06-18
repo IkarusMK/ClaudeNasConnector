@@ -14,7 +14,7 @@ Add it once as a *custom connector* and Claude gains:
 
 The model stays in Anthropic's cloud. **Your data, skills, and secrets stay on your NAS.** Claude talks to this server over an HTTPS connector; the server uses your local credentials internally and never hands them to the model.
 
-> ⚠️ **Status: early / skeleton.** It currently ships a working `ping` tool that proves the full chain (NAS → reverse proxy → Claude connector). Memory tools, the skill router, and authentication are on the roadmap below. **Do not expose this publicly without adding authentication first** (see [Security](#security)).
+> ⚠️ **Status: early.** It currently ships a working `ping` tool that proves the full chain (NAS → reverse proxy → Claude connector). Memory tools and the skill router are on the roadmap below; **OAuth authentication is already supported** (see [Authentication](#authentication)). **Do not expose this publicly without enabling it.**
 
 ## How it works
 
@@ -112,16 +112,43 @@ All config lives in `.env` (copy from `.env.example`):
 | `PGID`      | `1000`  | Group ID the process runs as |
 | `TZ`        | `UTC`   | Container timezone |
 
+## Authentication
+
+Protect the connector with OAuth before you expose it. It uses **your own OIDC
+identity provider** as the login backend — Pocket ID, Authentik, Keycloak, Auth0,
+anything with standard OIDC discovery. FastMCP's OIDC proxy handles the MCP-side
+OAuth 2.1 flow (Dynamic Client Registration + PKCE) that the Claude connector
+speaks; your provider just does the actual login.
+
+> ℹ️ **Don't** put browser/forward-auth (reverse-proxy SSO) in front of the
+> `/mcp` endpoint — the Claude connector is a *machine* client and can't follow an
+> interactive login redirect. Authentication must happen at the MCP layer, which
+> is exactly what this does.
+
+Enable it by setting these in `.env` (see `.env.example`):
+
+| Variable | Example |
+|----------|---------|
+| `OIDC_CONFIG_URL` | `https://id.example.com/.well-known/openid-configuration` |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | from a client you register in your provider |
+| `BASE_URL` | `https://agent.example.com` (this server's public URL) |
+| `JWT_SIGNING_KEY` | `openssl rand -hex 32` |
+
+Register the OAuth client in your provider with redirect URI
+**`<BASE_URL>/auth/callback`**. Then (re-)add the custom connector in Claude — it
+will send you through your provider's login. When the OIDC variables are unset the
+server runs open (local testing only).
+
 ## Security
 
-- This server is reachable from the public internet via your proxy. **Add authentication before exposing it** — anyone who reaches the endpoint can call its tools.
+- This server is reachable from the public internet via your proxy. **Enable [Authentication](#authentication) before exposing it** — anyone who reaches the endpoint can otherwise call its tools.
 - Keep all real credentials (API tokens, etc.) in `.env` / a secrets store **on your NAS**. They are used server-side and never sent to the model.
 - `.env` and `data/` contents are git-ignored — never commit secrets.
 
 ## Roadmap
 
 - [x] Walking skeleton: `ping` tool + remote MCP over HTTPS
-- [ ] Authentication (OAuth / token) for the connector
+- [x] Authentication: OAuth 2.1 via your own OIDC provider (Pocket ID, Authentik, Keycloak, Auth0, …)
 - [ ] Memory tools (`memory_read` / `memory_write` / `memory_list`), namespaced for multi-agent
 - [ ] Skill router (`skill_search` / `skill_load` / `skill_resource`)
 - [ ] Built-in tool integrations (Home Assistant, etc.)
