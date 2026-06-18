@@ -8,7 +8,9 @@ Add it once as a *custom connector* and Claude gains:
 
 - 🧠 **Consistent memory** that lives on your NAS and follows you across every device
 - 📱 **Work from anywhere** — the *same* brain on desktop **and** mobile, one account, one state
-- 🛠️ **Your tools & skills** — home automation, document stores, a 3D printer, finance APIs … exposed as callable MCP tools and retrievable skills
+- 🗂️ **A skill router** — your skills live on your NAS; Claude *searches* them and loads the right one on demand (progressive disclosure)
+- 🛠️ **Your tools** — home automation, document stores, a 3D printer, finance APIs … as callable MCP tools
+- 🤝 **Multi-agent ready** — shared memory + registry so several agents can share one brain
 
 The model stays in Anthropic's cloud. **Your data, skills, and secrets stay on your NAS.** Claude talks to this server over an HTTPS connector; the server uses your local credentials internally and never hands them to the model.
 
@@ -17,7 +19,7 @@ The model stays in Anthropic's cloud. **Your data, skills, and secrets stay on y
 ## How it works
 
 ```
-Claude app (desktop / mobile)
+Claude app (desktop / mobile)  ·  one or many agents
         │  custom connector (HTTPS, from Anthropic's cloud)
         ▼
 Reverse proxy (Zoraxy / Caddy / nginx / Traefik …)
@@ -26,8 +28,51 @@ Reverse proxy (Zoraxy / Caddy / nginx / Traefik …)
 ClaudeNasConnector  (this container, on your NAS)
         │  uses local files & secrets
         ▼
-Memory files · Skills · Your tools & APIs
+Memory  ·  Skills (searchable)  ·  Your tools & APIs
 ```
+
+## Project structure
+
+```
+ClaudeNasConnector/
+├── app/                # Server code (FastMCP) + future tool modules
+│   ├── server.py
+│   └── requirements.txt
+├── data/               # Persistent, human-readable state (git-ignored content)
+│   ├── memory/         #   memory files — what Claude remembers about you
+│   ├── skills/         #   skill library — SKILL.md folders the router searches
+│   └── work/           #   file workflows / scratch (CAD, exports, large files)
+├── secrets/            # Local credentials (.env etc.) — never leave the NAS
+├── logs/               # Container logs
+├── docs/               # Architecture & Claude project-instruction template
+├── Dockerfile          # Baked image (deps installed at build time)
+├── entrypoint.sh       # Drops privileges to PUID:PGID at runtime (gosu)
+├── docker-compose.yml
+└── .env.example
+```
+
+> **No `deps/` folder?** Correct — dependencies are baked **into the image** at build time, so there's no install-on-start volume. The `data/`, `logs/` and `secrets/` folders keep their structure via `.gitkeep`; their *contents* are git-ignored so nothing private is committed.
+
+## Memory, skills & the skill router
+
+This is the heart of the project — making Claude *itself* portable, not just chat.
+
+- **Memory** lives as plain files under `data/memory`. Tools (`memory_read` / `memory_write` / `memory_list`) let Claude recall and update what it knows about you — the same on every device.
+- **Skills** live as folders under `data/skills` (`<skill>/SKILL.md` + resources). The router tools — `skill_search` / `skill_load` / `skill_resource` — let Claude find the right skill for a request and pull in **only what it needs** (progressive disclosure, the same idea as tool search).
+- **Wire it up once.** Add a short instruction to your Claude **Project** so the assistant always consults the router first — see [`docs/claude-project-instructions.md`](docs/claude-project-instructions.md). After that, "find the right skill / tool and apply it" just happens, from any device.
+
+Tools follow the same pattern: add an integration once on the NAS, and it's discoverable and callable everywhere.
+
+## Multi-agent ready
+
+The design lets several agents share one NAS brain without stepping on each other:
+
+- **Namespaced memory** — memory is addressed by scope, so agents share common knowledge while keeping private notes (`shared` vs. per-agent).
+- **Shared skill & tool registry** — every agent queries the same `skill_search` and tool set; add a capability once, all agents get it.
+- **Per-agent workspaces** — isolated working directories under `data/work` for parallel tasks.
+- **(Planned) agent inbox** — an append-only channel for agent-to-agent and agent-to-you messages, à la Hermes.
+
+Full orchestration (spawning/coordinating sub-agents) is on the roadmap; the seams above are in place so it can land **without a rewrite**. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Requirements
 
@@ -67,21 +112,20 @@ All config lives in `.env` (copy from `.env.example`):
 | `PGID`      | `1000`  | Group ID the process runs as |
 | `TZ`        | `UTC`   | Container timezone |
 
-Data is stored under `./data` (memory, skills, work) and logs under `./logs` by default.
-
 ## Security
 
 - This server is reachable from the public internet via your proxy. **Add authentication before exposing it** — anyone who reaches the endpoint can call its tools.
 - Keep all real credentials (API tokens, etc.) in `.env` / a secrets store **on your NAS**. They are used server-side and never sent to the model.
-- `.env` and `data/` are git-ignored — never commit secrets.
+- `.env` and `data/` contents are git-ignored — never commit secrets.
 
 ## Roadmap
 
 - [x] Walking skeleton: `ping` tool + remote MCP over HTTPS
 - [ ] Authentication (OAuth / token) for the connector
-- [ ] Memory tools (`memory_read` / `memory_write` / `memory_list`)
+- [ ] Memory tools (`memory_read` / `memory_write` / `memory_list`), namespaced for multi-agent
 - [ ] Skill router (`skill_search` / `skill_load` / `skill_resource`)
 - [ ] Built-in tool integrations (Home Assistant, etc.)
+- [ ] Multi-agent: agent inbox + sub-agent orchestration
 - [ ] Prebuilt image on GHCR
 
 ## License
