@@ -35,14 +35,19 @@ Memory  ·  Skills (searchable)  ·  Your tools & APIs
 
 ```
 ClaudeNasConnector/
-├── app/                # Server code (FastMCP) + future tool modules
-│   ├── server.py
+├── app/                # Server code (FastMCP)
+│   ├── server.py       #   entrypoint — wires auth + registers tool modules
+│   ├── memory.py       #   memory tools
+│   ├── skills.py       #   skill router
+│   ├── services.py     #   generic allow-listed service caller
 │   └── requirements.txt
 ├── data/               # Persistent, human-readable state (git-ignored content)
 │   ├── memory/         #   memory files — what Claude remembers about you
-│   ├── skills/         #   skill library — SKILL.md folders the router searches
+│   ├── skills/         #   skill library — <skill>/SKILL.md the router searches
+│   ├── services/       #   service configs (integrations as data)
+│   ├── auth/           #   OAuth client registrations (persisted)
 │   └── work/           #   file workflows / scratch (CAD, exports, large files)
-├── secrets/            # Local credentials (.env etc.) — never leave the NAS
+├── secrets/            # Local credentials (.env) — never leave the NAS
 ├── logs/               # Container logs
 ├── docs/               # Architecture & Claude project-instruction template
 ├── Dockerfile          # Baked image (deps installed at build time)
@@ -61,7 +66,14 @@ This is the heart of the project — making Claude *itself* portable, not just c
 - **Skills** live as folders under `data/skills` (`<skill>/SKILL.md` + resources). The router tools — `skill_search` / `skill_load` / `skill_resource` — let Claude find the right skill for a request and pull in **only what it needs** (progressive disclosure, the same idea as tool search).
 - **Wire it up once.** Add a short instruction to your Claude **Project** so the assistant always consults the router first — see [`docs/claude-project-instructions.md`](docs/claude-project-instructions.md). After that, "find the right skill / tool and apply it" just happens, from any device.
 
-Tools follow the same pattern: add an integration once on the NAS, and it's discoverable and callable everywhere.
+## Tools & integrations (as data)
+
+New integrations don't need new code. A **service** is a small config you register
+at runtime with `service_add` (stored under `data/services`); `call_service` then
+reaches it — only registered services are allowed, and the auth token is injected
+server-side from an environment variable (`token_env`), never stored in data or
+returned to the model. Pair a service with a `skill_write` skill that explains how
+to use it, and a new capability is live **without a redeploy**.
 
 ## Multi-agent ready
 
