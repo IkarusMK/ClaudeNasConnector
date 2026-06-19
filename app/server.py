@@ -17,6 +17,7 @@ import os
 from fastmcp import FastMCP
 
 import memory
+import skills
 
 MEMORY_DIR = os.environ.get("MEMORY_DIR", "/data/memory")
 SKILLS_DIR = os.environ.get("SKILLS_DIR", "/data/skills")
@@ -82,7 +83,8 @@ def ping(name: str = "world") -> str:
 # Memory tools: write / read / list / search / delete (file-based under MEMORY_DIR)
 memory.register(mcp)
 
-# --- Roadmap: skill_search / skill_load / skill_resource ---
+# Skill router: search / list / load / resource / write (folder-based under SKILLS_DIR)
+skills.register(mcp)
 
 
 if __name__ == "__main__":
