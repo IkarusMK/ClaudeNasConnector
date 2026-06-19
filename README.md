@@ -169,7 +169,8 @@ FASTMCP_LOG_LEVEL: "DEBUG"
 - [x] Authentication: OAuth 2.1 via your own OIDC provider (Pocket ID, Authentik, Keycloak, Auth0, …)
 - [x] Memory tools (`memory_write` / `memory_read` / `memory_list` / `memory_search` / `memory_delete`), scope-namespaced for multi-agent
 - [x] Skill router (`skill_search` / `skill_list` / `skill_load` / `skill_resource` / `skill_write`)
-- [ ] Built-in tool integrations (Home Assistant, etc.)
+- [x] Generic service caller (`call_service` / `service_add` / `service_list`) — integrations as data + skills, no redeploy
+- [ ] Bundled service configs & skills (Home Assistant, Mealie, …)
 - [ ] Multi-agent: agent inbox + sub-agent orchestration
 - [ ] Prebuilt image on GHCR
 

@@ -4,6 +4,7 @@
 # Runtime data (keep the directory structure, ignore the contents)
 data/memory/*
 data/skills/*
+data/services/*
 data/work/*
 data/auth/*
 logs/*

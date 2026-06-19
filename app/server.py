@@ -18,6 +18,7 @@ from fastmcp import FastMCP
 
 import memory
 import skills
+import services
 
 MEMORY_DIR = os.environ.get("MEMORY_DIR", "/data/memory")
 SKILLS_DIR = os.environ.get("SKILLS_DIR", "/data/skills")
@@ -85,6 +86,9 @@ memory.register(mcp)
 
 # Skill router: search / list / load / resource / write (folder-based under SKILLS_DIR)
 skills.register(mcp)
+
+# Generic service caller: call_service / service_add / service_list (integrations as data)
+services.register(mcp)
 
 
 if __name__ == "__main__":

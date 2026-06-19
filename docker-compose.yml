@@ -17,6 +17,7 @@ services:
       FORWARDED_ALLOW_IPS: "*"
       MEMORY_DIR: /data/memory
       SKILLS_DIR: /data/skills
+      SERVICES_DIR: /data/services
       WORK_DIR: /data/work
       SECRETS_DIR: /secrets
     env_file:
@@ -24,6 +25,7 @@ services:
     volumes:
       - ./data/memory:/data/memory
       - ./data/skills:/data/skills
+      - ./data/services:/data/services
       - ./data/work:/data/work
       - ./data/auth:/data/auth
       - ./secrets:/secrets:ro
