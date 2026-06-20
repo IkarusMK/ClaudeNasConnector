@@ -19,6 +19,8 @@ from fastmcp import FastMCP
 import memory
 import skills
 import services
+import mqtt_tools
+import ftp_tools
 import secrets_store
 import guide
 
@@ -101,8 +103,14 @@ memory.register(mcp)
 # Skill router: search / list / load / resource / write (folder-based under SKILLS_DIR)
 skills.register(mcp)
 
-# Generic service caller: call_service / service_add / service_list (integrations as data)
+# Generic service caller: call_service / service_add / service_list (HTTP integrations as data)
 services.register(mcp)
+
+# Generic MQTT dispatcher: mqtt_add / mqtt_list / mqtt_publish / mqtt_get (MQTT devices as data)
+mqtt_tools.register(mcp)
+
+# Generic FTP/FTPS transfer: ftp_add / ftp_list_endpoints / ftp_list / ftp_upload (files as data)
+ftp_tools.register(mcp)
 
 # Encrypted secret vault: secret_set / secret_list / secret_delete (dynamic secrets)
 secrets_store.register(mcp)

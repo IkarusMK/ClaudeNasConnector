@@ -1,1 +1,2 @@
 fastmcp==2.14.7
+paho-mqtt>=2.1,<3

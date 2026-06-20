@@ -20,6 +20,8 @@ services:
       SERVICES_DIR: /data/services
       VAULT_DIR: /data/vault
       WORK_DIR: /data/work
+      MQTT_DIR: /data/mqtt
+      FTP_DIR: /data/ftp
       SECRETS_DIR: /secrets
     env_file:
       - .env
@@ -29,6 +31,8 @@ services:
       - ./data/services:/data/services
       - ./data/vault:/data/vault
       - ./data/work:/data/work
+      - ./data/mqtt:/data/mqtt
+      - ./data/ftp:/data/ftp
       - ./data/auth:/data/auth
       - ./secrets:/secrets:ro
       - ./logs:/logs
