@@ -66,6 +66,16 @@ def _build_auth():
         # upstream OIDC scopes as claims, so requiring them rejects valid tokens.
         # A successful login through the provider is sufficient authorization.
         jwt_signing_key=os.environ.get("JWT_SIGNING_KEY"),
+        # We MUST still send a `scope` to the IdP's /authorize endpoint, though.
+        # Without it, some providers (e.g. Pocket ID) hand `scope=null` to their
+        # web UI, which then crashes ("null is not an object — n.scope.includes")
+        # and the login spinner hangs forever — the authorize request is never
+        # sent. extra_authorize_params injects the scope ONLY into the upstream
+        # authorize request, so it stays out of MCP token validation (unlike
+        # required_scopes). The IdP must support these scopes.
+        extra_authorize_params={
+            "scope": os.environ.get("OIDC_SCOPE", "openid profile email"),
+        },
     )
     storage = _client_storage()
     if storage is not None:
